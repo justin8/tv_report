@@ -13,7 +13,8 @@ setup(
     install_requires=[
         "colorama",
         "pymediainfo",
-        "tqdm"
+        "tqdm",
+        "tv_episode_parser",
     ],
     entry_points={
         "console_scripts": [
