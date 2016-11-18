@@ -9,13 +9,16 @@ setup(
     description="A parser for tv show episode files of various formats",
     packages=find_packages(),
     license="MIT",
-    test_suite="tests",
     install_requires=[
         "colorama",
         "pymediainfo",
         "tqdm",
         "tv_episode_parser",
     ],
+    tests_require=["nose",
+        "coverage",
+    ],
+    test_suite="nose.collector",
     entry_points={
         "console_scripts": [
             "tv-report=tv_report:main",
