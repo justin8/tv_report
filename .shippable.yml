@@ -9,5 +9,5 @@ build:
     ci:
         - mkdir -p shippable/codecoverage
         - coverage run ./setup.py test
-        - coverage xml -o shippable/codecoverage/coverage.xml
+        - coverage xml --include 'tv_report*' -o shippable/codecoverage/coverage.xml
         - nosetests --with-xunit --xunit-file=shippable/testresults/nosetests.xml
