@@ -10,8 +10,11 @@ class tv_report_tests(unittest.TestCase):
                            "test file 123x124 - name.mpg",
                            "test file 123x124 - name.mpeg",
                            "test file 123x124 - name.mov",
+                           "test file 123x124 - name.MOV",
                            "test file 123x124 - name.m4v",
                            "test file 123x124 - name.flv",
+                           "test file 123x124 - name.FLV",
+                           "test file 123x124 - name.divx",
                            "test file 123x124 - name.ts",
                            "test file 123x124 - name.wmv",
         ]
