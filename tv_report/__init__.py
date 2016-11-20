@@ -37,7 +37,7 @@ def cprint(colour, message):
 
 
 def is_video(f):
-    video_extensions = ("avi", "mkv", "mp4", "mpg", "mpeg", "mov", "m4v", "flv", "ts", "wmv")
+    video_extensions = ("avi", "divx", "mkv", "mp4", "mpg", "mpeg", "mov", "m4v", "flv", "ts", "wmv")
     return f.endswith(video_extensions)
 
 
