@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="tv_report",
-    version="1.0.0",
+    version="1.0.1",
     author="Justin Dray",
     author_email="justin@dray.be",
     url="https://github.com/justin8/tv_report",

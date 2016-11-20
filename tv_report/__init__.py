@@ -166,7 +166,7 @@ def print_global_totals(global_statistics):
 
 
 def save_html(show_statistics, global_statistics):
-    with open("simple-report.html", "w") as f:
+    with open("tv_report.html", "w") as f:
         f.write('<html><head><title>TV Shows codec report</title><style> \
                  #shows {font-family: "Trebuchet MS", Arial, Helvetica, sans-serif; border-collapse: collapse; width: 100%; } \
                  #shows td {border: 1px solid \
@@ -325,7 +325,7 @@ def main():
 
     directory = os.path.realpath(args.directory)
     data_file_name = hashlib.md5(bytes(directory, 'ascii')).hexdigest()
-    data_file_path = os.path.join(os.path.expanduser("~"), ".simple-report-data")
+    data_file_path = os.path.join(os.path.expanduser("~"), ".tv_report_data")
     data_file = os.path.join(data_file_path, data_file_name)
 
     if not os.path.exists(data_file_path):
