@@ -13,6 +13,8 @@ from pymediainfo import MediaInfo
 from tqdm import tqdm
 import tv_episode_parser
 
+HTML_FILENAME = "tv_report.html"
+
 init()
 
 
@@ -165,8 +167,8 @@ def print_global_totals(global_statistics):
     print_metadata(global_statistics, indent=2)
 
 
-def save_html(show_statistics, global_statistics):
-    with open("tv_report.html", "w") as f:
+def save_html(show_statistics, global_statistics, html_filename):
+    with open(html_filename, "w") as f:
         f.write('<html><head><title>TV Shows codec report</title><style> \
                  #shows {font-family: "Trebuchet MS", Arial, Helvetica, sans-serif; border-collapse: collapse; width: 100%; } \
                  #shows td {border: 1px solid \
@@ -314,6 +316,10 @@ def main():
                         help="Just read the cache but don't update it at all",
                         default=False,
                         action="store_true")
+    parser.add_argument("--html",
+                        help="Save a html version of the report out to the current folder as %s" % HTML_FILENAME,
+                        default=False,
+                        action="store_true")
     parser.add_argument("directory",
                         help="The directory to read files from",
                         action="store")
@@ -363,7 +369,8 @@ def main():
     print()
     print_global_totals(global_statistics)
 
-    save_html(show_statistics, global_statistics)
+    if args.html:
+        save_html(show_statistics, global_statistics, HTML_FILENAME)
 
 
 if __name__ == "__main__":
