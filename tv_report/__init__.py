@@ -11,7 +11,7 @@ from colorama import Fore, Style, init
 from pprint import pprint
 from pymediainfo import MediaInfo
 from tqdm import tqdm
-import tv_episode_parser
+import video_utils
 
 HTML_FILENAME = "tv_report.html"
 
@@ -38,33 +38,6 @@ def cprint(colour, message):
     print(colours[colour] + str(message) + Style.RESET_ALL)
 
 
-def is_video(f):
-    video_extensions = ("avi", "divx", "mkv", "mp4", "mpg", "mpeg", "mov", "m4v", "flv", "ts", "wmv")
-    return f.lower().endswith(video_extensions)
-
-
-def get_quality(track):
-    if track.width >= 1900 and track.width <= 1930:
-        return "1080p"
-    if track.height >= 1000 and track.height <= 1100:
-        return "1080p"
-    if track.width >= 1200 and track.width <= 1290:
-        return "720p"
-    if track.height >= 650 and track.height <= 730:
-        return "720p"
-    if track.width < 1000:
-        return "SD"
-    return "Unknown"
-
-
-def get_codec(track):
-    if track.format == "HEVC":
-        return "x265"
-    if track.format == "AVC":
-        return "x264"
-    return "Other"
-
-
 def parse_per_season_statistics(filemap):
     statistics = {}
     for show in filemap:
@@ -72,13 +45,13 @@ def parse_per_season_statistics(filemap):
         vprint("green", "Working in directory: %s" % show)
         for filename, metadata in filemap[show].items():
             vprint("blue", "Parsing per-season statistics for %s" % filename)
-            season = tv_episode_parser.parse(filename)['season']
+            season = video_utils.parseTVEpisode(filename)['season']
             if season not in statistics[show]:
-                statistics[show][season] = {"episodes": 0, "size": 0, "quality": {}, "codec": {}}
+                statistics[show][season] = {"episodes": 0, "size": 0, "quality": {}, "format": {}}
             statistics[show][season]["episodes"] += 1
             statistics[show][season]["size"] += metadata["size"]
 
-            for stat in ["quality", "codec"]:
+            for stat in ["quality", "format"]:
                 if not metadata[stat] in statistics[show][season][stat]:
                     statistics[show][season][stat][metadata[stat]] = 0
                 statistics[show][season][stat][metadata[stat]] += 1
@@ -91,11 +64,11 @@ def parse_per_show_statistics(filemap):
     for show in filemap:
         for filename, metadata in filemap[show].items():
             if show not in statistics:
-                statistics[show] = {"episodes": 0, "size": 0, "quality": {}, "codec": {}}
+                statistics[show] = {"episodes": 0, "size": 0, "quality": {}, "format": {}}
             statistics[show]["episodes"] += 1
             statistics[show]["size"] += metadata["size"]
 
-            for stat in ["quality", "codec"]:
+            for stat in ["quality", "format"]:
                 if not metadata[stat] in statistics[show][stat]:
                     statistics[show][stat][metadata[stat]] = 0
                 statistics[show][stat][metadata[stat]] += 1
@@ -104,11 +77,11 @@ def parse_per_show_statistics(filemap):
 
 
 def parse_global_statistics(show_statistics):
-    statistics = {"episodes": 0, "size": 0, "codec": {}, "quality": {}}
+    statistics = {"episodes": 0, "size": 0, "format": {}, "quality": {}}
     for metadata in show_statistics.values():
         statistics["episodes"] += metadata["episodes"]
         statistics["size"] += metadata["size"]
-        for stat in ["quality", "codec"]:
+        for stat in ["quality", "format"]:
             for item in metadata[stat]:
                 if item not in statistics[stat]:
                     statistics[stat][item] = 0
@@ -139,7 +112,8 @@ def print_metadata(metadata, indent=0):
         cprint(colour, "%s  %s: %s (%s)" % (indent, quality, count, '{:.1%}'.format(count / metadata["episodes"])))
 
     cprint("blue", "%sCodec:" % indent)
-    for codec, count in metadata["codec"].items():
+    for formatString, count in metadata["format"].items():
+        codec = video_utils.getCodecFromFormat(formatString, "pretty")
         colour = get_codec_colour(codec)
         cprint(colour, "%s  %s: %s (%s)" % (indent, codec, count, '{:.1%}'.format(count / metadata["episodes"])))
 
@@ -186,7 +160,7 @@ def save_html(show_statistics, global_statistics, html_filename):
 
         f.write('<tfoot><tr>%s%s%s%s%s%s%s%s%s%s%s%s</tr></tfoot>' % (
             html_cell("TOTALS"),
-            html_cell(html_progress(global_statistics["codec"]["x265"] if "x265" in global_statistics["codec"] else 0, global_statistics["episodes"])),
+            html_cell(html_progress(global_statistics["format"]["HEVC"] if "HEVC" in global_statistics["codec"] else 0, global_statistics["episodes"])),
             html_cell(html_progress(global_statistics["quality"]["1080p"] if "1080p" in global_statistics["quality"] else 0, global_statistics["episodes"])),
             html_cell("%3.1f %s" % (global_statistics["size"] / 1024 / 1024 / 1024, "GiB")),
             html_cell(global_statistics["episodes"]),
@@ -194,9 +168,9 @@ def save_html(show_statistics, global_statistics, html_filename):
             html_cell(global_statistics["quality"]["720p"] if "720p" in global_statistics["quality"] else 0),
             html_cell(global_statistics["quality"]["SD"] if "SD" in global_statistics["quality"] else 0),
             html_cell(global_statistics["quality"]["Unknown"] if "Unknown" in global_statistics["quality"] else 0),
-            html_cell(global_statistics["codec"]["x265"] if "x265" in global_statistics["codec"] else 0),
-            html_cell(global_statistics["codec"]["x264"] if "x264" in global_statistics["codec"] else 0),
-            html_cell(global_statistics["codec"]["Other"] if "Other" in global_statistics["codec"] else 0)))
+            html_cell(video_utils.getCodecFromFormat(global_statistics["format"]["HEVC"], codecType="pretty") if "HEVC" in global_statistics["format"] else 0),
+            html_cell(video_utils.getCodecFromFormat(global_statistics["format"]["AVC"], codecType="pretty") if "AVC" in global_statistics["format"] else 0),
+            html_cell(global_statistics["format"]["Other"] if "Other" in global_statistics["format"] else 0)))
         f.write('</table></body></html>')
 
 
@@ -208,10 +182,11 @@ def html_progress(value, maximum):
     return '<progress value="%s" max="%s"/>' % (value, maximum)
 
 
+# TODO: loop through valid formats so this doesn't need to be udpated again
 def metadata_to_table_row(show, metadata):
     out = "<tr>"
     out += html_cell(os.path.basename(show))
-    out += html_cell(html_progress(metadata["codec"]["x265"] if "x265" in metadata["codec"] else 0, metadata["episodes"]))
+    out += html_cell(html_progress(metadata["format"]["HEVC"] if "x265" in metadata["format"] else 0, metadata["episodes"]))
     out += html_cell(html_progress(metadata["quality"]["1080p"] if "1080p" in metadata["quality"] else 0, metadata["episodes"]))
     out += html_cell("%3.1f %s" % (metadata["size"] / 1024 / 1024 / 1024, "GiB"))
     out += html_cell(metadata["episodes"])
@@ -219,88 +194,11 @@ def metadata_to_table_row(show, metadata):
     out += html_cell(metadata["quality"]["720p"] if "720p" in metadata["quality"] else 0)
     out += html_cell(metadata["quality"]["SD"] if "SD" in metadata["quality"] else 0)
     out += html_cell(metadata["quality"]["Unknown"] if "Unknown" in metadata["quality"] else 0)
-    out += html_cell(metadata["codec"]["x265"] if "x265" in metadata["codec"] else 0)
-    out += html_cell(metadata["codec"]["x264"] if "x264" in metadata["codec"] else 0)
-    out += html_cell(metadata["codec"]["Other"] if "Other" in metadata["codec"] else 0)
+    out += html_cell(metadata["format"]["HEVC"] if "x265" in metadata["format"] else 0)
+    out += html_cell(metadata["format"]["AVC"] if "x264" in metadata["format"] else 0)
+    out += html_cell(metadata["format"]["Other"] if "Other" in metadata["format"] else 0)
     out += "</tr>"
     return out
-
-
-def get_videos_in_list(filenames):
-    videos = []
-    for video in filenames:
-        if is_video(video):
-            videos.append(video)
-    videos.sort()
-    return videos
-
-
-def prune_filemap(filemap):
-    cprint("green", "Checking for deleted files...")
-    tempmap = deepcopy(filemap)
-    collection = tempmap
-    if VERBOSE == 0:
-        collection = tqdm(tempmap)
-    for dirpath in collection:
-        if not os.path.exists(dirpath):
-            vprint("blue", "Removing %s from cache" % dirpath)
-            del filemap[dirpath]
-            continue
-
-        for video in tempmap[dirpath]:
-            videopath = os.path.join(dirpath, video)
-            if not os.path.exists(videopath):
-                vprint("blue", "Removing %s from cache" % videopath)
-                del filemap[dirpath][video]
-    return filemap
-
-
-def update_filemap(data_file, filemap, directory):
-    filemap = prune_filemap(filemap)
-    for dirpath, dirnames, filenames in os.walk(directory, followlinks=True):
-        cprint("green", "Working in directory: %s" % dirpath)
-
-        videos = get_videos_in_list(filenames)
-        vprint("blue", "Total videos in %s: %s" % (dirpath, len(videos)))
-
-        current_video = 0
-        if VERBOSE == 0:
-            videos = tqdm(videos)
-        changes = False
-        for video in videos:
-            if dirpath not in filemap:  # Only create if there are videos for this path
-                filemap[dirpath] = {}
-            video_path = os.path.join(dirpath, video)
-            video_size = os.stat(video_path).st_size
-            current_video += 1
-            if video in filemap[dirpath]:
-                vvprint("blue", "Found %s in cache..." % video)
-                if filemap[dirpath][video]["size"] == video_size and filemap[dirpath][video]["quality"] != 'Unknown':
-                    vprint("blue", "Using cache (%s/%s) %s" % (current_video, len(videos), video))
-                    continue
-                vvprint("blue", "Filesize differs. Invalidating cache")
-            changes = True
-            vprint("blue", "Parsing (%s/%s) %s" % (current_video, len(videos), video))
-            metadata = MediaInfo.parse(video_path)
-            for track in metadata.tracks:
-                if track.track_type == "Video":
-                    quality = get_quality(track)
-                    codec = get_codec(track)
-                    break
-            filemap[dirpath][video] = {
-                        "size": os.stat(video_path).st_size,
-                        "quality": quality,
-                        "codec": codec
-                    }
-            if VERBOSE >= 2:
-                cprint("blue", "Video details:")
-                pprint(filemap[dirpath][video])
-                print('---------------')
-        if changes:
-            vprint("green", "Saving out partial filemap...")
-            with open(data_file, "wb") as f:
-                pickle.dump(filemap, f)
-    return filemap
 
 
 def main():
@@ -337,14 +235,7 @@ def main():
     if not os.path.exists(data_file_path):
         os.mkdir(data_file_path)
 
-    filemap = {}
-    if os.path.exists(data_file) and not args.ignore_cache:
-        vprint("green", "Loading from cache...")
-        with open(data_file, "rb") as f:
-            filemap = pickle.load(f)
-
-    if not args.output_only:
-        filemap = update_filemap(data_file, filemap, os.path.realpath(directory))
+    filemap = video_utils.getFileMap(directory, update=not args.output_only, useCache=not args.ignore_cache)
 
     if VERBOSE >= 2:
         cprint("green", "Complete map of files:")

@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="tv_report",
-    version="1.0.2",
+    version="1.1.1",
     author="Justin Dray",
     author_email="justin@dray.be",
     url="https://github.com/justin8/tv_report",
@@ -14,7 +14,7 @@ setup(
         "colorama",
         "pymediainfo",
         "tqdm",
-        "tv_episode_parser",
+        "video_utils",
     ],
     tests_require=["nose",
         "coverage",
