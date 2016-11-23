@@ -6,6 +6,7 @@ import hashlib
 import os
 import pickle
 import re
+import logging
 
 from colorama import Fore, Style, init
 from pprint import pprint
@@ -14,18 +15,9 @@ from tqdm import tqdm
 import video_utils
 
 HTML_FILENAME = "tv_report.html"
+log = logging.getLogger()
 
 init()
-
-
-def vprint(colour, message):
-    if VERBOSE > 0:
-        cprint(colour, message)
-
-
-def vvprint(colour, message):
-    if VERBOSE > 1:
-        cprint(colour, message)
 
 
 def cprint(colour, message):
@@ -42,9 +34,9 @@ def parse_per_season_statistics(filemap):
     statistics = {}
     for show in filemap:
         statistics[show] = {}
-        vprint("green", "Working in directory: %s" % show)
+        log.info("Working in directory: %s" % show)
         for filename, metadata in filemap[show].items():
-            vprint("blue", "Parsing per-season statistics for %s" % filename)
+            log.info("Parsing per-season statistics for %s" % filename)
             season = video_utils.parseTVEpisode(filename)['season']
             if season not in statistics[show]:
                 statistics[show][season] = {"episodes": 0, "size": 0, "quality": {}, "format": {}}
@@ -224,8 +216,11 @@ def main():
 
     args = parser.parse_args()
 
-    global VERBOSE
-    VERBOSE = args.verbose
+    if args.verbose == 1:
+        logging.basicConfig(level=logging.INFO)
+    elif args.verbose >= 2:
+        logging.basicConfig(level=logging.DEBUG)
+
 
     directory = os.path.realpath(args.directory)
     data_file_name = hashlib.md5(bytes(directory, 'ascii')).hexdigest()
@@ -237,15 +232,14 @@ def main():
 
     filemap = video_utils.getFileMap(directory, update=not args.output_only, useCache=not args.ignore_cache)
 
-    if VERBOSE >= 2:
-        cprint("green", "Complete map of files:")
-        pprint(filemap)
+    log.debug("Complete map of files:")
+    log.debug(filemap)
 
     show_statistics = parse_per_show_statistics(filemap)
     season_statistics = parse_per_season_statistics(filemap)
     global_statistics = parse_global_statistics(show_statistics)
 
-    if VERBOSE >= 2:
+    if log.level <= logging.DEBUG:
         cprint("green", "Show statistics:")
         pprint(show_statistics)
         cprint("green", "Season statistics:")
