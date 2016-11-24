@@ -39,11 +39,11 @@ def parse_per_season_statistics(filemap):
             log.info("Parsing per-season statistics for %s" % filename)
             season = video_utils.parseTVEpisode(filename)['season']
             if season not in statistics[show]:
-                statistics[show][season] = {"episodes": 0, "size": 0, "quality": {}, "format": {}}
+                statistics[show][season] = {"episodes": 0, "size": 0, "quality": {}, "codec": {}}
             statistics[show][season]["episodes"] += 1
             statistics[show][season]["size"] += metadata["size"]
 
-            for stat in ["quality", "format"]:
+            for stat in ["quality", "codec"]:
                 if not metadata[stat] in statistics[show][season][stat]:
                     statistics[show][season][stat][metadata[stat]] = 0
                 statistics[show][season][stat][metadata[stat]] += 1
@@ -56,11 +56,11 @@ def parse_per_show_statistics(filemap):
     for show in filemap:
         for filename, metadata in filemap[show].items():
             if show not in statistics:
-                statistics[show] = {"episodes": 0, "size": 0, "quality": {}, "format": {}}
+                statistics[show] = {"episodes": 0, "size": 0, "quality": {}, "codec": {}}
             statistics[show]["episodes"] += 1
             statistics[show]["size"] += metadata["size"]
 
-            for stat in ["quality", "format"]:
+            for stat in ["quality", "codec"]:
                 if not metadata[stat] in statistics[show][stat]:
                     statistics[show][stat][metadata[stat]] = 0
                 statistics[show][stat][metadata[stat]] += 1
@@ -69,11 +69,11 @@ def parse_per_show_statistics(filemap):
 
 
 def parse_global_statistics(show_statistics):
-    statistics = {"episodes": 0, "size": 0, "format": {}, "quality": {}}
+    statistics = {"episodes": 0, "size": 0, "codec": {}, "quality": {}}
     for metadata in show_statistics.values():
         statistics["episodes"] += metadata["episodes"]
         statistics["size"] += metadata["size"]
-        for stat in ["quality", "format"]:
+        for stat in ["quality", "codec"]:
             for item in metadata[stat]:
                 if item not in statistics[stat]:
                     statistics[stat][item] = 0
@@ -104,8 +104,8 @@ def print_metadata(metadata, indent=0):
         cprint(colour, "%s  %s: %s (%s)" % (indent, quality, count, '{:.1%}'.format(count / metadata["episodes"])))
 
     cprint("blue", "%sCodec:" % indent)
-    for formatString, count in metadata["format"].items():
-        codec = video_utils.getCodecFromFormat(formatString, "pretty")
+    for codec, count in metadata["codec"].items():
+        codec = codec
         colour = get_codec_colour(codec)
         cprint(colour, "%s  %s: %s (%s)" % (indent, codec, count, '{:.1%}'.format(count / metadata["episodes"])))
 
@@ -145,24 +145,24 @@ def save_html(show_statistics, global_statistics, html_filename):
                  #shows tr:nth-child(even){background-color: #f2f2f2;} \
                  #shows tr:hover {background-color: #ddd;}</style> \
                  <script type="text/javascript" src="http://www.kryogenix.org/code/browser/sorttable/sorttable.js"></script></head>')
-        f.write('<html><body><table class="sortable" id="shows"><tr><th>Show</th><th>Codec progress</th><th>Quality progress</th><th>Size (GB)</th><th>Episodes</th><th>1080p</th><th>720p</th><th>SD</th><th>Unknown</th><th>x265</th><th>x264</th><th>Other</th></tr>')
+        f.write('<html><body><table class="sortable" id="shows"><tr><th>Show</th><th>Codec progress</th><th>Quality progress</th><th>Size (GB)</th><th>Episodes</th><th>1080p</th><th>720p</th><th>SD</th><th>Other</th><th>x265</th><th>x264</th><th>Other</th></tr>')
 
         for show, metadata in show_statistics.items():
             f.write(metadata_to_table_row(show, metadata))
 
         f.write('<tfoot><tr>%s%s%s%s%s%s%s%s%s%s%s%s</tr></tfoot>' % (
             html_cell("TOTALS"),
-            html_cell(html_progress(global_statistics["format"]["HEVC"] if "HEVC" in global_statistics["codec"] else 0, global_statistics["episodes"])),
+            html_cell(html_progress(global_statistics["codec"]["HEVC"] if "HEVC" in global_statistics["codec"] else 0, global_statistics["episodes"])),
             html_cell(html_progress(global_statistics["quality"]["1080p"] if "1080p" in global_statistics["quality"] else 0, global_statistics["episodes"])),
             html_cell("%3.1f %s" % (global_statistics["size"] / 1024 / 1024 / 1024, "GiB")),
             html_cell(global_statistics["episodes"]),
             html_cell(global_statistics["quality"]["1080p"] if "1080p" in global_statistics["quality"] else 0),
             html_cell(global_statistics["quality"]["720p"] if "720p" in global_statistics["quality"] else 0),
             html_cell(global_statistics["quality"]["SD"] if "SD" in global_statistics["quality"] else 0),
-            html_cell(global_statistics["quality"]["Unknown"] if "Unknown" in global_statistics["quality"] else 0),
-            html_cell(video_utils.getCodecFromFormat(global_statistics["format"]["HEVC"], codecType="pretty") if "HEVC" in global_statistics["format"] else 0),
-            html_cell(video_utils.getCodecFromFormat(global_statistics["format"]["AVC"], codecType="pretty") if "AVC" in global_statistics["format"] else 0),
-            html_cell(global_statistics["format"]["Other"] if "Other" in global_statistics["format"] else 0)))
+            html_cell(global_statistics["quality"]["Other"] if "Other" in global_statistics["quality"] else 0),
+            html_cell(global_statistics["codec"]["x265"] if "x265" in global_statistics["codec"] else 0),
+            html_cell(global_statistics["codec"]["x264"] if "x264" in global_statistics["codec"] else 0),
+            html_cell(global_statistics["codec"]["Other"] if "Other" in global_statistics["codec"] else 0)))
         f.write('</table></body></html>')
 
 
@@ -178,17 +178,17 @@ def html_progress(value, maximum):
 def metadata_to_table_row(show, metadata):
     out = "<tr>"
     out += html_cell(os.path.basename(show))
-    out += html_cell(html_progress(metadata["format"]["HEVC"] if "x265" in metadata["format"] else 0, metadata["episodes"]))
+    out += html_cell(html_progress(metadata["codec"]["x265"] if "x265" in metadata["x265"] else 0, metadata["episodes"]))
     out += html_cell(html_progress(metadata["quality"]["1080p"] if "1080p" in metadata["quality"] else 0, metadata["episodes"]))
     out += html_cell("%3.1f %s" % (metadata["size"] / 1024 / 1024 / 1024, "GiB"))
     out += html_cell(metadata["episodes"])
     out += html_cell(metadata["quality"]["1080p"] if "1080p" in metadata["quality"] else 0)
     out += html_cell(metadata["quality"]["720p"] if "720p" in metadata["quality"] else 0)
     out += html_cell(metadata["quality"]["SD"] if "SD" in metadata["quality"] else 0)
-    out += html_cell(metadata["quality"]["Unknown"] if "Unknown" in metadata["quality"] else 0)
-    out += html_cell(metadata["format"]["HEVC"] if "x265" in metadata["format"] else 0)
-    out += html_cell(metadata["format"]["AVC"] if "x264" in metadata["format"] else 0)
-    out += html_cell(metadata["format"]["Other"] if "Other" in metadata["format"] else 0)
+    out += html_cell(metadata["quality"]["Other"] if "Other" in metadata["quality"] else 0)
+    out += html_cell(metadata["codec"]["x265"] if "x265" in metadata["x265"] else 0)
+    out += html_cell(metadata["codec"]["x264"] if "x264" in metadata["x264"] else 0)
+    out += html_cell(metadata["codec"]["Other"] if "Other" in metadata["codec"] else 0)
     out += "</tr>"
     return out
 
