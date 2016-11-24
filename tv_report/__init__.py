@@ -221,14 +221,7 @@ def main():
     elif args.verbose >= 2:
         logging.basicConfig(level=logging.DEBUG)
 
-
     directory = os.path.realpath(args.directory)
-    data_file_name = hashlib.md5(bytes(directory, 'ascii')).hexdigest()
-    data_file_path = os.path.join(os.path.expanduser("~"), ".tv_report_data")
-    data_file = os.path.join(data_file_path, data_file_name)
-
-    if not os.path.exists(data_file_path):
-        os.mkdir(data_file_path)
 
     filemap = video_utils.getFileMap(directory, update=not args.output_only, useCache=not args.ignore_cache)
 
