@@ -145,15 +145,15 @@ def save_html(show_statistics, global_statistics, html_filename):
                  #shows tr:nth-child(even){background-color: #f2f2f2;} \
                  #shows tr:hover {background-color: #ddd;}</style> \
                  <script type="text/javascript" src="http://www.kryogenix.org/code/browser/sorttable/sorttable.js"></script></head>')
-        f.write('<html><body><table class="sortable" id="shows"><tr><th>Show</th><th>Codec progress</th><th>Quality progress</th><th>Size (GB)</th><th>Episodes</th><th>1080p</th><th>720p</th><th>SD</th><th>Other</th><th>x265</th><th>x264</th><th>Other</th></tr>')
+        f.write('<html><body><table class="sortable" id="shows"><tr><th>Show</th><th>Quality progress</th><th>Codec progress</th><th>Size (GB)</th><th>Episodes</th><th>1080p</th><th>720p</th><th>SD</th><th>Other</th><th>x265</th><th>x264</th><th>Other</th></tr>')
 
         for show, metadata in show_statistics.items():
             f.write(metadata_to_table_row(show, metadata))
 
         f.write('<tfoot><tr>%s%s%s%s%s%s%s%s%s%s%s%s</tr></tfoot>' % (
             html_cell("TOTALS"),
-            html_cell(html_progress(global_statistics["codec"]["HEVC"] if "HEVC" in global_statistics["codec"] else 0, global_statistics["episodes"])),
             html_cell(html_progress(global_statistics["quality"]["1080p"] if "1080p" in global_statistics["quality"] else 0, global_statistics["episodes"])),
+            html_cell(html_progress(global_statistics["codec"]["x265"] if "x265" in global_statistics["codec"] else 0, global_statistics["episodes"])),
             html_cell("%3.1f %s" % (global_statistics["size"] / 1024 / 1024 / 1024, "GiB")),
             html_cell(global_statistics["episodes"]),
             html_cell(global_statistics["quality"]["1080p"] if "1080p" in global_statistics["quality"] else 0),
@@ -178,16 +178,16 @@ def html_progress(value, maximum):
 def metadata_to_table_row(show, metadata):
     out = "<tr>"
     out += html_cell(os.path.basename(show))
-    out += html_cell(html_progress(metadata["codec"]["x265"] if "x265" in metadata["x265"] else 0, metadata["episodes"]))
     out += html_cell(html_progress(metadata["quality"]["1080p"] if "1080p" in metadata["quality"] else 0, metadata["episodes"]))
+    out += html_cell(html_progress(metadata["codec"]["x265"] if "x265" in metadata["codec"] else 0, metadata["episodes"]))
     out += html_cell("%3.1f %s" % (metadata["size"] / 1024 / 1024 / 1024, "GiB"))
     out += html_cell(metadata["episodes"])
     out += html_cell(metadata["quality"]["1080p"] if "1080p" in metadata["quality"] else 0)
     out += html_cell(metadata["quality"]["720p"] if "720p" in metadata["quality"] else 0)
     out += html_cell(metadata["quality"]["SD"] if "SD" in metadata["quality"] else 0)
     out += html_cell(metadata["quality"]["Other"] if "Other" in metadata["quality"] else 0)
-    out += html_cell(metadata["codec"]["x265"] if "x265" in metadata["x265"] else 0)
-    out += html_cell(metadata["codec"]["x264"] if "x264" in metadata["x264"] else 0)
+    out += html_cell(metadata["codec"]["x265"] if "x265" in metadata["codec"] else 0)
+    out += html_cell(metadata["codec"]["x264"] if "x264" in metadata["codec"] else 0)
     out += html_cell(metadata["codec"]["Other"] if "Other" in metadata["codec"] else 0)
     out += "</tr>"
     return out
