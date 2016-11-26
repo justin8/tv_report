@@ -221,7 +221,7 @@ def main():
     elif args.verbose >= 2:
         logging.basicConfig(level=logging.DEBUG)
 
-    filemap = video_utils.getFileMap(directory, update=not args.output_only, useCache=not args.ignore_cache)
+    filemap = video_utils.getFileMap(args.directory, update=not args.output_only, useCache=not args.ignore_cache)
 
     log.debug("Complete map of files:")
     log.debug(filemap)
