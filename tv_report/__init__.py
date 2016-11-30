@@ -144,7 +144,7 @@ def save_html(show_statistics, global_statistics, html_filename):
                  #shows th {border: 1px solid #ddd; padding: 8px; text-align: center; padding-top: 12px; padding-bottom: 12px; background-color: #4CAF50; color: white; } \
                  #shows tr:nth-child(even){background-color: #f2f2f2;} \
                  #shows tr:hover {background-color: #ddd;}</style> \
-                 <script type="text/javascript" src="http://www.kryogenix.org/code/browser/sorttable/sorttable.js"></script></head>')
+                 <script type="text/javascript" src="https://public.dray.be/sorttable.js"></script></head>')
         f.write('<html><body><table class="sortable" id="shows"><tr><th>Show</th><th>Quality progress</th><th>Codec progress</th><th>Size (GB)</th><th>Episodes</th><th>1080p</th><th>720p</th><th>SD</th><th>Other</th><th>x265</th><th>x264</th><th>Other</th></tr>')
 
         for show, metadata in show_statistics.items():
